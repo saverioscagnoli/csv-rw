@@ -9,7 +9,7 @@
     "dev": "ts-node src/index.ts",
     "build": "rimraf dist && tsup src/index.ts --format cjs,esm --dts",
     "lint": "tsc",
-    "test": "vitest"
+    "test": "npm run build && vitest"
   },
   "keywords": [
     "csv",
