@@ -15,19 +15,7 @@ interface CSVOptions<T extends string> {
 
 type Value = string | number | boolean;
 
-type ExtractValueType<T extends string> = T extends `b:${string}`
-  ? boolean
-  : T extends `n:${string}`
-  ? number
-  : T extends `s:${string}`
-  ? string
-  : Value;
-
-type RemovePrefix<T> = T extends `${infer _}:${infer Rest}` ? Rest : T;
-
-type Entry<T extends string> = {
-  [K in T as RemovePrefix<K>]: ExtractValueType<K>;
-};
+type Entry<T extends string> = Record<T, Value>;
 
 class CSV<T extends string> {
   private path: string;
@@ -41,39 +29,52 @@ class CSV<T extends string> {
   }
 
   private init() {
-    if (!existsSync(this.path)) {
+    if (!existsSync(this.path) || readFileSync(this.path).length === 0) {
       writeFileSync(this.path, this.headers.join(","));
     }
   }
 
+  /**
+   * Function to read the CSV file.
+   * @returns An array of objects, each object represents a row in the CSV file.
+   */
   public read(): Entry<T>[] {
     let lines = readFileSync(this.path, "utf-8").split("\n");
-    let headers = lines[0]?.split(",");
     let data: Entry<T>[] = [];
 
     for (let i = 1; i < lines.length; i++) {
-      let values = lines[i]?.split(",");
       let entry = {} as Entry<T>;
+      let line = lines[i].split(",");
 
-      headers?.forEach((h, i) => {
-        let k = h as RemovePrefix<T>;
-        entry[k] = values?.[i] as Entry<T>[RemovePrefix<T>];
-      });
+      for (let j = 0; j < this.headers.length; j++) {
+        let key = this.headers[j];
+        let value: Value = line[j];
+
+        if (!isNaN(+value)) value = +value;
+        if (value === "true" || value === "false") value = value === "true";
+
+        entry[key] = value;
+      }
+
       data.push(entry);
     }
 
     return data;
   }
 
+  /**
+   * Function to write to the CSV file.
+   * @param data Data to be written to the CSV file.
+   */
   public write(data: Entry<T> | Entry<T>[]) {
     let rows = Array.isArray(data) ? data : [data];
     let content = this.read();
 
     for (let i = 0; i < rows.length; i++) {
       let row = rows[i];
-      let line = this.headers.map(o => row?.[o as RemovePrefix<T>]).join(",");
+      let line = this.headers.map(o => row[o]).join(",");
 
-      if (content.every(o => !isDeepStrictEqual(o, row))) {
+      if (!content.some(o => isDeepStrictEqual(o, row))) {
         writeFileSync(this.path, "\n" + line, { flag: "a" });
       }
     }
