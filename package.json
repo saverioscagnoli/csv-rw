@@ -5,6 +5,10 @@
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saverioscagnoli/csv-rw"
+  },
   "scripts": {
     "dev": "ts-node src/index.ts",
     "build": "rimraf dist && tsup src/index.ts --format cjs,esm --dts",

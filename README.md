@@ -1,0 +1,47 @@
+# CSV writer and parser
+
+**With dynamic typing!** 🥳
+
+![npm-badge](https://img.shields.io/npm/v/csv-rw)
+
+## Usage
+
+To install the package, run the following command:
+
+```
+npm i csv-rw
+```
+
+### Example
+
+```ts
+import { CSV } from "csw-rw";
+
+const csv = new CSV({ path: "path/to/file.csv", headers: ["name", "age"] });
+
+// There's intellisense!
+csv.write({ name: "John", age: 21 });
+
+csv.write([
+  { name: "Jane", age: 19 },
+  { name: "Freddy", age: 45 }
+]);
+
+console.log(csv.read());
+
+/* -> [
+    { name: "John", age: 21 },
+    { name: "Jane", age: 19 },
+    { name: "Freddy", age: 45 }
+] */
+```
+
+You must pass am object to the CSV class constructor, these are the properties on that object:
+
+| option    | description                                                         | type       | default |
+| --------- | ------------------------------------------------------------------- | ---------- | ------- |
+| `path`    | Path to the CSV file, if the file doesn't exist it will be created. | `string`   | None    |
+| `headers` | The headers of the CSV file.                                        | `string[]` | `[]`    |
+
+### License
+MIT License (c) 2023 Saverio Scagnoli
