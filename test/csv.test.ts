@@ -1,6 +1,7 @@
 import { readFileSync, unlinkSync, writeFileSync } from "fs";
 import { CSV } from "../dist";
 import { afterAll, describe, expect, it } from "vitest";
+import { randomUUID } from "crypto";
 
 describe("CSV", () => {
   it("Correctly read a .csv file", () => {
@@ -19,6 +20,7 @@ describe("CSV", () => {
 
     const csv100 = new CSV({ path: "test/100-lines.csv", headers });
     expect(csv100.read().length).toEqual(100);
+
 
     const csv1000 = new CSV({ path: "test/1000-lines.csv", headers });
     expect(csv1000.read().length).toEqual(1000);
@@ -69,10 +71,22 @@ describe("CSV", () => {
     ]);
   });
 
+  it("clearing the .csv file", async () => {
+    const csv = new CSV({ path: "test/clear.csv", headers: ["name", "age"] });
+
+    for (let i = 0; i < 20; i++) {
+      csv.write({ name: randomUUID(), age: Math.floor(Math.random() * 100) });
+    }
+
+    csv.clear();
+    expect(csv.read()).toEqual([]);
+  });
+
   afterAll(() => {
     unlinkSync("test/test1.csv");
     unlinkSync("test/write.csv");
     unlinkSync("test/empty.csv");
+    unlinkSync("test/clear.csv");
 
     writeFileSync("test/empty.csv", "");
   });

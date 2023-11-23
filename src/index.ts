@@ -79,6 +79,13 @@ class CSV<T extends string> {
       }
     }
   }
+
+  /**
+   * Function to clear the CSV file.
+   */
+  public clear() {
+    writeFileSync(this.path, this.headers.join(","));
+  }
 }
 
 export { CSV, type CSVOptions };
