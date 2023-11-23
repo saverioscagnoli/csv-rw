@@ -1,0 +1,9 @@
+.vscode
+node_modules
+src
+test
+.gitignore
+.prettierrc
+package-lock.json
+tsconfig.json
+tsup.config.ts
