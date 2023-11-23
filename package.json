@@ -1,0 +1,29 @@
+{
+  "name": "simple-csv",
+  "version": "0.0.1",
+  "description": "A simple CSV writer and parser for Node.js",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "rimraf dist && tsup src/index.ts --format cjs,esm --dts",
+    "lint": "tsc"
+  },
+  "keywords": [
+    "csv",
+    "file",
+    "simple",
+    "spreadsheet",
+    "dataset"
+  ],
+  "author": "saverioscagnoli",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.9.4",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.1",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.2"
+  }
+}
