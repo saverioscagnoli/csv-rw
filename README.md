@@ -3,6 +3,7 @@
 **With dynamic typing!** 🥳
 
 ![npm-badge](https://img.shields.io/npm/v/csv-rw)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
 
 ## Usage
 
