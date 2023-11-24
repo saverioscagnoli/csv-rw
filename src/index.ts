@@ -1,5 +1,4 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
-import { isDeepStrictEqual } from "util";
 
 interface CSVOptions<T extends string> {
   /**
@@ -67,16 +66,39 @@ class CSV<T extends string> {
    * @param data Data to be written to the CSV file.
    */
   public write(data: Entry<T> | Entry<T>[]) {
-    let rows = Array.isArray(data) ? data : [data];
+    let r = Array.isArray(data) ? data : [data];
     let content = this.read();
 
-    for (let i = 0; i < rows.length; i++) {
-      let row = rows[i];
-      let line = this.headers.map(o => row[o]).join(",");
+    let entries = new Set(content.map(e => JSON.stringify(e)));
+    let n = r.filter(row => !entries.has(JSON.stringify(row)));
 
-      if (!content.some(o => isDeepStrictEqual(o, row))) {
-        writeFileSync(this.path, "\n" + line, { flag: "a" });
-      }
+    if (n.length > 0) {
+      let lines = n.map(row => this.headers.map(h => row[h]).join(","));
+      writeFileSync(this.path, "\n" + lines.join("\n"), { flag: "a" });
+    }
+  }
+
+  /**
+   * Function to find an entry in the CSV file based on a predicate function.
+   * @param predicate A function that takes an entry and returns a boolean indicating whether the entry matches the condition.
+   * @returns The first entry that satisfies the condition, or undefined if no such entry is found.
+   */
+  public find(predicate: (entry: Entry<T>) => boolean): Entry<T> | undefined {
+    return this.read().find(predicate);
+  }
+
+  /**
+   * Function to delete an entry in the CSV file based on a predicate function.
+   * @param predicate A function that takes an entry and returns a boolean indicating whether the entry should be deleted.
+   */
+  public delete(predicate: (entry: Entry<T>) => boolean) {
+    let data = this.read();
+    let index = data.findIndex(predicate);
+
+    if (index !== -1) {
+      data.splice(index, 1);
+      this.clear();
+      this.write(data);
     }
   }
 
