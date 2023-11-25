@@ -19,15 +19,17 @@ type Entry<T extends string> = Record<T, Value>;
 class CSV<T extends string> {
   private path: string;
   private headers: T[];
+  private storeItems: Entry<T>[];
 
   public constructor({ path, headers }: CSVOptions<T>) {
     this.path = path;
     this.headers = headers;
+    this.storeItems = [];
 
     this.init();
   }
 
-  private init() {
+  private init(): void {
     if (!existsSync(this.path) || readFileSync(this.path).length === 0) {
       writeFileSync(this.path, this.headers.join(","));
     }
@@ -65,7 +67,7 @@ class CSV<T extends string> {
    * Function to write to the CSV file.
    * @param data Data to be written to the CSV file.
    */
-  public write(data: Entry<T> | Entry<T>[]) {
+  public write(data: Entry<T> | Entry<T>[]): void {
     let r = Array.isArray(data) ? data : [data];
     let content = this.read();
 
@@ -91,7 +93,7 @@ class CSV<T extends string> {
    * Function to delete an entry in the CSV file based on a predicate function.
    * @param predicate A function that takes an entry and returns a boolean indicating whether the entry should be deleted.
    */
-  public delete(predicate: (entry: Entry<T>) => boolean) {
+  public delete(predicate: (entry: Entry<T>) => boolean): void {
     let data = this.read();
     let index = data.findIndex(predicate);
 
@@ -105,8 +107,26 @@ class CSV<T extends string> {
   /**
    * Function to clear the CSV file.
    */
-  public clear() {
+  public clear(): void {
     writeFileSync(this.path, this.headers.join(","));
+  }
+
+  /**
+   * Function to store data inside the object, for later writing.
+   * @see CSV.bulkWrite
+   * @param data Data to be stored in the CSV file.
+   */
+  public store(...data: Entry<T>[]): void {
+    this.storeItems.push(...data);
+  }
+
+  /**
+   * Function to write the stored data to the CSV file.
+   * @param reset Whether to reset the stored data after writing.
+   */
+  public bulkWrite(reset: boolean = true): void {
+    this.write(this.storeItems);
+    if (reset) this.storeItems = [];
   }
 }
 

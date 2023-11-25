@@ -155,6 +155,55 @@ describe("CSV", () => {
     });
   });
 
+  // FILEPATH: /c:/Users/Saverio/Documents/proj/csv-rw/test/csv.test.ts
+
+  describe("CSV", () => {
+    it("Correctly stores data and bulkwrites it", () => {
+      const csv = new CSV({ path: "test/store.csv", headers: ["name", "age"] });
+
+      csv.store({ name: "John", age: 20 });
+      expect(csv["storeItems"]).toEqual([{ name: "John", age: 20 }]);
+
+      csv.store({ name: "Jane", age: 21 });
+      expect(csv["storeItems"]).toEqual([
+        { name: "John", age: 20 },
+        { name: "Jane", age: 21 }
+      ]);
+
+      csv.store({ name: "Nancy", age: 35 });
+      expect(csv["storeItems"]).toEqual([
+        { name: "John", age: 20 },
+        { name: "Jane", age: 21 },
+        { name: "Nancy", age: 35 }
+      ]);
+
+      csv.bulkWrite();
+    });
+
+    it("Correctly writes data to the .csv file", () => {
+      const csv = new CSV({ path: "test/store.csv", headers: ["name", "age"] });
+
+      expect(csv.read()).toEqual([
+        { name: "John", age: 20 },
+        { name: "Jane", age: 21 },
+        { name: "Nancy", age: 35 }
+      ]);
+    });
+
+    it("Correctly bulk writes large amount of data", () => {
+      const csv = new CSV({ path: "test/bulk.csv", headers: ["name", "age"] });
+
+      for (let i = 0; i < 1000000; i++) {
+        csv.store({ name: randomUUID(), age: Math.floor(Math.random() * 100) });
+      }
+
+      csv.bulkWrite();
+
+      expect(csv.read().length).toEqual(1000000);
+      expect(csv["storeItems"].length).toEqual(0);
+    });
+  });
+
   afterAll(() => {
     unlinkSync("test/test1.csv");
     unlinkSync("test/write.csv");
@@ -162,6 +211,8 @@ describe("CSV", () => {
     unlinkSync("test/clear.csv");
     unlinkSync("test/find.csv");
     unlinkSync("test/delete.csv");
+    unlinkSync("test/store.csv");
+    unlinkSync("test/bulk.csv");
 
     writeFileSync("test/empty.csv", "");
   });
