@@ -1,4 +1,11 @@
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  createReadStream,
+  createWriteStream
+} from "fs";
+import { createInterface } from "readline";
 
 interface CSVOptions<T extends string> {
   /**
@@ -9,13 +16,17 @@ interface CSVOptions<T extends string> {
   /**
    * Headers of the CSV file.
    */
-  headers: T[];
+  headers?: T[];
 }
 
 type Value = string | number | boolean;
 
 type Entry<T extends string> = Record<T, Value>;
 
+/**
+ * Represents a CSV file.
+ * @template T The type of the headers in the CSV file.
+ */
 class CSV<T extends string> {
   private path: string;
   private headers: T[];
@@ -23,7 +34,7 @@ class CSV<T extends string> {
 
   public constructor({ path, headers }: CSVOptions<T>) {
     this.path = path;
-    this.headers = headers;
+    this.headers = headers ?? [];
     this.storeItems = [];
 
     this.init();
@@ -127,6 +138,63 @@ class CSV<T extends string> {
   public bulkWrite(reset: boolean = true): void {
     this.write(this.storeItems);
     if (reset) this.storeItems = [];
+  }
+
+  /**
+   * Function to convert the CSV file to JSON.
+   * @param output Path to the JSON file.
+   */
+  public toJson(output: string): Promise<void> {
+    return new Promise((res, rej) => {
+      let rs = createReadStream(this.path, "utf8");
+      let ws = createWriteStream(output);
+      let rl = createInterface({ input: rs });
+      let lp = this.read().length;
+
+      let h: string[] = [];
+      let f = true;
+
+      ws.write("[");
+
+      rl.on("line", line => {
+        let obj: { [key: string]: unknown } = {};
+        let data = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+
+        if (f) {
+          h = data;
+          f = false;
+        } else {
+          for (let i = 0; i < h.length; i++) {
+            let v: string | number | boolean | null = data[i];
+            if (v.startsWith('"') && v.endsWith('"')) {
+              v = v.substring(1, v.length - 1);
+            }
+
+            if (!isNaN(+v)) v = +v;
+            if (v === "true" || v === "false") v = v === "true";
+            if (v === "null") v = null;
+
+            obj[h[i]] = v;
+          }
+          ws.write(JSON.stringify(obj));
+          if (lp > 1) ws.write(",\n");
+          lp--;
+        }
+      });
+
+      rl.on("error", err => {
+        rej(err);
+      });
+
+      rl.on("close", () => {
+        ws.write("]");
+        ws.end();
+      });
+
+      ws.on("finish", () => {
+        res();
+      });
+    });
   }
 }
 
