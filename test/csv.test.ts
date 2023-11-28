@@ -1,20 +1,7 @@
-import { readFileSync, unlinkSync, writeFileSync } from "fs";
+import { read, readFileSync, unlinkSync, writeFileSync } from "fs";
 import { CSV } from "../dist";
 import { afterAll, describe, expect, it } from "vitest";
 import { randomUUID } from "crypto";
-
-const headersType = [
-  "Index",
-  "Organization Id",
-  "Id",
-  "Name",
-  "Website",
-  "Country",
-  "Description",
-  "Founded",
-  "Industry",
-  "Number of employees"
-] as const;
 
 const headers = [
   "Index",
@@ -32,14 +19,12 @@ const headers = [
 describe("CSV", () => {
   it("Correctly read a .csv file", () => {
     const csv100 = new CSV<(typeof headers)[number]>({
-      path: "test/100-lines.csv",
-      headers
+      path: "test/100-lines.csv"
     });
     expect(csv100.read().length).toEqual(100);
 
     const csv1000 = new CSV<(typeof headers)[number]>({
-      path: "test/1000-lines.csv",
-      headers
+      path: "test/1000-lines.csv"
     });
     expect(csv1000.read().length).toEqual(1000);
   });
@@ -155,53 +140,67 @@ describe("CSV", () => {
     });
   });
 
-  // FILEPATH: /c:/Users/Saverio/Documents/proj/csv-rw/test/csv.test.ts
+  it("Correctly stores data and bulkwrites it", () => {
+    const csv = new CSV({ path: "test/store.csv", headers: ["name", "age"] });
 
-  describe("CSV", () => {
-    it("Correctly stores data and bulkwrites it", () => {
-      const csv = new CSV({ path: "test/store.csv", headers: ["name", "age"] });
+    csv.store({ name: "John", age: 20 });
+    expect(csv["storeItems"]).toEqual([{ name: "John", age: 20 }]);
 
-      csv.store({ name: "John", age: 20 });
-      expect(csv["storeItems"]).toEqual([{ name: "John", age: 20 }]);
+    csv.store({ name: "Jane", age: 21 });
+    expect(csv["storeItems"]).toEqual([
+      { name: "John", age: 20 },
+      { name: "Jane", age: 21 }
+    ]);
 
-      csv.store({ name: "Jane", age: 21 });
-      expect(csv["storeItems"]).toEqual([
-        { name: "John", age: 20 },
-        { name: "Jane", age: 21 }
-      ]);
+    csv.store({ name: "Nancy", age: 35 });
+    expect(csv["storeItems"]).toEqual([
+      { name: "John", age: 20 },
+      { name: "Jane", age: 21 },
+      { name: "Nancy", age: 35 }
+    ]);
 
-      csv.store({ name: "Nancy", age: 35 });
-      expect(csv["storeItems"]).toEqual([
-        { name: "John", age: 20 },
-        { name: "Jane", age: 21 },
-        { name: "Nancy", age: 35 }
-      ]);
+    csv.bulkWrite();
+  });
 
-      csv.bulkWrite();
-    });
+  it("Correctly writes data to the .csv file", () => {
+    const csv = new CSV({ path: "test/store.csv", headers: ["name", "age"] });
 
-    it("Correctly writes data to the .csv file", () => {
-      const csv = new CSV({ path: "test/store.csv", headers: ["name", "age"] });
+    expect(csv.read()).toEqual([
+      { name: "John", age: 20 },
+      { name: "Jane", age: 21 },
+      { name: "Nancy", age: 35 }
+    ]);
+  });
 
-      expect(csv.read()).toEqual([
-        { name: "John", age: 20 },
-        { name: "Jane", age: 21 },
-        { name: "Nancy", age: 35 }
-      ]);
-    });
+  it("Correctly bulk writes large amount of data", () => {
+    const csv = new CSV({ path: "test/bulk.csv", headers: ["name", "age"] });
 
-    it("Correctly bulk writes large amount of data", () => {
-      const csv = new CSV({ path: "test/bulk.csv", headers: ["name", "age"] });
+    for (let i = 0; i < 1000000; i++) {
+      csv.store({ name: randomUUID(), age: Math.floor(Math.random() * 100) });
+    }
 
-      for (let i = 0; i < 1000000; i++) {
-        csv.store({ name: randomUUID(), age: Math.floor(Math.random() * 100) });
-      }
+    csv.bulkWrite();
 
-      csv.bulkWrite();
+    expect(csv.read().length).toEqual(1000000);
+    expect(csv["storeItems"].length).toEqual(0);
+  });
 
-      expect(csv.read().length).toEqual(1000000);
-      expect(csv["storeItems"].length).toEqual(0);
-    });
+  it("Correctly converts csv to json", async () => {
+    const csv = new CSV({ path: "test/json-test1.csv" });
+    await csv.toJson("test/json-test1.json");
+
+    let json = readFileSync("test/json-test1.json", "utf-8");
+
+    expect(JSON.parse(json)).toEqual([
+      { string: "Sera", bool: true, number: 42, null: null },
+      { string: "aaa", bool: false, number: 4, null: null },
+      { string: "bbb", bool: true, number: 4535, null: null },
+      { string: "ccc", bool: true, number: 2e3, null: null },
+      { string: "ddd", bool: false, number: 27.5, null: null }
+    ]);
+
+    const csv2 = new CSV({ path: "test/json-test2.csv" });
+    await csv2.toJson("test/json-test2.json");
   });
 
   afterAll(() => {
@@ -213,6 +212,7 @@ describe("CSV", () => {
     unlinkSync("test/delete.csv");
     unlinkSync("test/store.csv");
     unlinkSync("test/bulk.csv");
+    unlinkSync("test/json-test1.json");
 
     writeFileSync("test/empty.csv", "");
   });
