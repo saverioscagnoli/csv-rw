@@ -141,6 +141,23 @@ class CSV<T extends string> {
   }
 
   /**
+   * Function to convert a JSON file to CSV.
+   * @param json The json input.
+   * @param output The path to the CSV file.
+   * @returns The CSV object.
+   */
+  public static fromJson(json: string, output: string): CSV<string> {
+    let data = JSON.parse(json);
+    let headers = Object.keys(data[0]);
+
+    let csv = new CSV({ path: output, headers });
+
+    csv.write(data);
+
+    return csv;
+  }
+
+  /**
    * Function to convert the CSV file to JSON.
    * @param output Path to the JSON file.
    */
