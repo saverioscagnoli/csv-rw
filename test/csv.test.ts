@@ -144,16 +144,16 @@ describe("CSV", () => {
     const csv = new CSV({ path: "test/store.csv", headers: ["name", "age"] });
 
     csv.store({ name: "John", age: 20 });
-    expect(csv["storeItems"]).toEqual([{ name: "John", age: 20 }]);
+    expect(csv["stored"]).toEqual([{ name: "John", age: 20 }]);
 
     csv.store({ name: "Jane", age: 21 });
-    expect(csv["storeItems"]).toEqual([
+    expect(csv["stored"]).toEqual([
       { name: "John", age: 20 },
       { name: "Jane", age: 21 }
     ]);
 
     csv.store({ name: "Nancy", age: 35 });
-    expect(csv["storeItems"]).toEqual([
+    expect(csv["stored"]).toEqual([
       { name: "John", age: 20 },
       { name: "Jane", age: 21 },
       { name: "Nancy", age: 35 }
@@ -182,7 +182,7 @@ describe("CSV", () => {
     csv.bulkWrite();
 
     expect(csv.read().length).toEqual(1000000);
-    expect(csv["storeItems"].length).toEqual(0);
+    expect(csv["stored"].length).toEqual(0);
   });
 
   it("Correctly converts csv to json", async () => {
