@@ -30,12 +30,12 @@ type Entry<T extends string> = Record<T, Value>;
 class CSV<T extends string> {
   private path: string;
   private headers: T[];
-  private storeItems: Entry<T>[];
+  private stored: Entry<T>[];
 
   public constructor({ path, headers }: CSVOptions<T>) {
     this.path = path;
     this.headers = headers ?? [];
-    this.storeItems = [];
+    this.stored = [];
 
     this.init();
   }
@@ -128,7 +128,7 @@ class CSV<T extends string> {
    * @param data Data to be stored in the CSV file.
    */
   public store(...data: Entry<T>[]): void {
-    this.storeItems.push(...data);
+    this.stored.push(...data);
   }
 
   /**
@@ -136,8 +136,8 @@ class CSV<T extends string> {
    * @param reset Whether to reset the stored data after writing.
    */
   public bulkWrite(reset: boolean = true): void {
-    this.write(this.storeItems);
-    if (reset) this.storeItems = [];
+    this.write(this.stored);
+    if (reset) this.stored = [];
   }
 
   /**
@@ -212,6 +212,18 @@ class CSV<T extends string> {
         res();
       });
     });
+  }
+
+  /**
+   * Function to sort the CSV file.
+   * @param fn A function that defines the sort order.
+   * @see Array.sort
+   */
+  public sort(fn: (a: Entry<T>, b: Entry<T>) => number): void {
+    let data = this.read();
+    data.sort(fn);
+    this.clear();
+    this.write(data);
   }
 }
 
