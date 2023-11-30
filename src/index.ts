@@ -19,7 +19,7 @@ interface CSVOptions<T extends string> {
   headers?: T[];
 }
 
-type Value = string | number | boolean;
+type Value = string | number | boolean | null;
 
 type Entry<T extends string> = Record<T, Value>;
 
@@ -59,13 +59,14 @@ class CSV<T extends string> {
       let line = lines[i].split(",");
 
       for (let j = 0; j < this.headers.length; j++) {
-        let key = this.headers[j];
-        let value: Value = line[j];
+        let k = this.headers[j];
+        let v: Value = line[j];
 
-        if (!isNaN(+value)) value = +value;
-        if (value === "true" || value === "false") value = value === "true";
+        if (!isNaN(+v)) v = +v;
+        if (v === "true" || v === "false") v = v === "true";
+        if (v === "null") v = null;
 
-        entry[key] = value;
+        entry[k] = v;
       }
 
       data.push(entry);
@@ -182,7 +183,7 @@ class CSV<T extends string> {
           f = false;
         } else {
           for (let i = 0; i < h.length; i++) {
-            let v: string | number | boolean | null = data[i];
+            let v: Value = data[i];
             if (v.startsWith('"') && v.endsWith('"')) {
               v = v.substring(1, v.length - 1);
             }
