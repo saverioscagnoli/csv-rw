@@ -1,4 +1,4 @@
-import { read, readFileSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, read, readFileSync, unlinkSync, writeFileSync } from "fs";
 import { CSV } from "../dist";
 import { afterAll, describe, expect, it } from "vitest";
 import { randomUUID } from "crypto";
@@ -101,6 +101,28 @@ describe("CSV", () => {
     expect(csv.find(o => o.name === "Bob")).toEqual(undefined);
   });
 
+  it("Handle the findAll function", () => {
+    const csv = new CSV({
+      path: "test/find-all.csv",
+      headers: ["name", "age"]
+    });
+
+    csv.write({ name: "John", age: 20 });
+    csv.write({ name: "Jane", age: 21 });
+    csv.write({ name: "Nancy", age: 35 });
+    csv.write({ name: "Zaza", age: 21 });
+
+    expect(csv.findAll(o => o.age === 21)).toEqual([
+      { name: "Jane", age: 21 },
+      { name: "Zaza", age: 21 }
+    ]);
+    expect(csv.findAll(o => o.age === 20)).toEqual([{ name: "John", age: 20 }]);
+    expect(csv.findAll(o => o.age === 35)).toEqual([
+      { name: "Nancy", age: 35 }
+    ]);
+    expect(csv.findAll(o => o.age === 50)).toEqual([]);
+  });
+
   it("Handle the delete function", () => {
     const csv = new CSV({ path: "test/delete.csv", headers: ["name", "age"] });
 
@@ -118,6 +140,33 @@ describe("CSV", () => {
     expect(csv.read()).toEqual([{ name: "Nancy", age: 35 }]);
 
     csv.delete(o => o.name === "Nancy");
+    expect(csv.read()).toEqual([]);
+  });
+
+  it("Handle the deleteAll function", () => {
+    const csv = new CSV({
+      path: "test/delete-all.csv",
+      headers: ["name", "age"]
+    });
+
+    csv.write({ name: "John", age: 20 });
+    csv.write({ name: "Jane", age: 21 });
+    csv.write({ name: "Nancy", age: 35 });
+    csv.write({ name: "Zaza", age: 21 });
+
+    csv.deleteAll(e => e.age === 21);
+    expect(csv.read()).toEqual([
+      { name: "John", age: 20 },
+      { name: "Nancy", age: 35 }
+    ]);
+
+    csv.deleteAll(e => e.name === "John");
+    expect(csv.read()).toEqual([{ name: "Nancy", age: 35 }]);
+
+    csv.deleteAll(e => e.name === "Nancy");
+    expect(csv.read()).toEqual([]);
+
+    csv.deleteAll(e => e.name === "Bob");
     expect(csv.read()).toEqual([]);
   });
 
@@ -203,6 +252,29 @@ describe("CSV", () => {
     await csv2.toJson("test/json-test2.json");
   });
 
+  it("Deletes the .csv file on startup", () => {
+    const csv = new CSV({ path: "test/delete-on-startup.csv" });
+
+    expect(existsSync("test/delete-on-startup")).toBe(false);
+  });
+
+  it("should sort records by a specified field", () => {
+    const csv = new CSV({ path: "test/sort.csv", headers: ["id", "name"] });
+
+    csv.write({ id: 3, name: "John" });
+    csv.write({ id: 1, name: "Jane" });
+    csv.write({ id: 2, name: "Nancy" });
+
+    csv.sort((a, b) => +a.id! - +b.id!);
+
+    const records = csv.read();
+    expect(records).toEqual([
+      { id: 1, name: "Jane" },
+      { id: 2, name: "Nancy" },
+      { id: 3, name: "John" }
+    ]);
+  });
+
   afterAll(() => {
     unlinkSync("test/test1.csv");
     unlinkSync("test/write.csv");
@@ -213,7 +285,12 @@ describe("CSV", () => {
     unlinkSync("test/store.csv");
     unlinkSync("test/bulk.csv");
     unlinkSync("test/json-test1.json");
+    unlinkSync("test/json-test2.json");
+    unlinkSync("test/delete-all.csv");
+    unlinkSync("test/find-all.csv");
+    unlinkSync("test/sort.csv");
 
     writeFileSync("test/empty.csv", "");
+    writeFileSync("test/delete-on-startup.csv", "");
   });
 });

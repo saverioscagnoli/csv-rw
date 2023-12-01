@@ -3,7 +3,8 @@ import {
   readFileSync,
   writeFileSync,
   createReadStream,
-  createWriteStream
+  createWriteStream,
+  unlinkSync
 } from "fs";
 import { createInterface } from "readline";
 
@@ -17,6 +18,11 @@ interface CSVOptions<T extends string> {
    * Headers of the CSV file.
    */
   headers?: T[];
+
+  /**
+   * If the path to the CSV file already exists, whether to delete it and create a new one.
+   */
+  deletePrevious?: boolean;
 }
 
 type Value = string | number | boolean | null;
@@ -32,10 +38,18 @@ class CSV<T extends string> {
   private headers: T[];
   private stored: Entry<T>[];
 
-  public constructor({ path, headers }: CSVOptions<T>) {
+  public constructor({
+    path,
+    headers = [],
+    deletePrevious = false
+  }: CSVOptions<T>) {
     this.path = path;
-    this.headers = headers ?? [];
+    this.headers = headers;
     this.stored = [];
+
+    if (deletePrevious && existsSync(this.path)) {
+      unlinkSync(this.path);
+    }
 
     this.init();
   }
@@ -63,8 +77,8 @@ class CSV<T extends string> {
         let v: Value = line[j];
 
         if (!isNaN(+v)) v = +v;
-        if (v === "true" || v === "false") v = v === "true";
-        if (v === "null") v = null;
+        else if (v === "true" || v === "false") v = v === "true";
+        else if (v?.toString().toLowerCase() === "null") v = null;
 
         entry[k] = v;
       }
@@ -93,27 +107,46 @@ class CSV<T extends string> {
   }
 
   /**
-   * Function to find an entry in the CSV file based on a predicate function.
-   * @param predicate A function that takes an entry and returns a boolean indicating whether the entry matches the condition.
+   * Function to find the first entry in the CSV file found by a predicate function.
+   * @param fn A function that takes an entry and returns a boolean indicating whether the entry matches the condition.
    * @returns The first entry that satisfies the condition, or undefined if no such entry is found.
    */
-  public find(predicate: (entry: Entry<T>) => boolean): Entry<T> | undefined {
-    return this.read().find(predicate);
+  public find(fn: (entry: Entry<T>) => boolean): Entry<T> | undefined {
+    return this.read().find(fn);
   }
 
   /**
-   * Function to delete an entry in the CSV file based on a predicate function.
-   * @param predicate A function that takes an entry and returns a boolean indicating whether the entry should be deleted.
+   * Function to find all entries in the CSV file found by a predicate function.
+   * @param fn A function that takes an entry and returns a boolean indicating whether the entry matches the condition.
+   * @returns An array of entries that satisfy the condition.
    */
-  public delete(predicate: (entry: Entry<T>) => boolean): void {
+  public findAll(fn: (entry: Entry<T>) => boolean): Entry<T>[] {
+    return this.read().filter(fn);
+  }
+
+  /**
+   * Function to delete the first entry in the CSV file found by a predicate function.
+   * @param fn A function that takes an entry and returns a boolean indicating whether the entry should be deleted.
+   */
+  public delete(fn: (entry: Entry<T>) => boolean): void {
     let data = this.read();
-    let index = data.findIndex(predicate);
+    let index = data.findIndex(fn);
 
     if (index !== -1) {
       data.splice(index, 1);
       this.clear();
       this.write(data);
     }
+  }
+
+  /**
+   * Function to delete all entries in the CSV file found by a predicate function.
+   * @param fn A function that takes an entry and returns a boolean indicating whether the entry should be deleted.
+   */
+  public deleteAll(fn: (entry: Entry<T>) => boolean): void {
+    let data = this.read();
+    this.clear();
+    this.write(data.filter(e => !fn(e)));
   }
 
   /**
@@ -190,7 +223,7 @@ class CSV<T extends string> {
 
             if (!isNaN(+v)) v = +v;
             if (v === "true" || v === "false") v = v === "true";
-            if (v === "null") v = null;
+            if (v?.toString().toLowerCase() === "null") v = null;
 
             obj[h[i]] = v;
           }
