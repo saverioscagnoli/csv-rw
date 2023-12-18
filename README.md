@@ -44,6 +44,7 @@ You must pass am object to the CSV class constructor, these are the properties o
 | `path`           | Path to the CSV file, if the file doesn't exist it will be created.                    | `string`   | None    |
 | `headers`        | The headers of the CSV file.                                                           | `string[]` | `[]`    |
 | `deletePrevious` | If the path to the CSV file already exists, whether to delete it and create a new one. | `string`   | `false` |
+| `delimiter`      | The delimiter that separates the value / headers                                       | `string`   | `,`     |
 
 ### License
 
