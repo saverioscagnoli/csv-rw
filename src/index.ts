@@ -41,10 +41,10 @@ type Entry<T extends string> = Record<T, Value>;
  * @template T The type of the headers in the CSV file.
  */
 class CSV<T extends string> {
-  private path: string;
-  private headers: T[];
-  private delimiter: string;
-  private stored: Entry<T>[];
+  protected path: string;
+  protected headers: T[];
+  protected delimiter: string;
+  protected stored: Entry<T>[];
 
   public constructor({
     path,
