@@ -1,6 +1,6 @@
 {
   "name": "csv-rw",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "A simple CSV writer and parser for Node.js",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
