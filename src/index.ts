@@ -318,6 +318,10 @@ class CSV<T extends string> {
     return csv;
   }
 
+  /**
+   * Converts the CSV file to a JSON file.
+   * @param output Path to the JSON file to write to.
+   */
   public toJson(output: string): Promise<void> {
     return new Promise(async (res, rej) => {
       let reader = createReadStream(this.path, "utf-8");
@@ -370,4 +374,4 @@ class CSV<T extends string> {
   }
 }
 
-export { CSV, type CSVOptions };
+export { CSV, type CSVOptions, type Value };
