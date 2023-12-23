@@ -1,8 +1,7 @@
 import fs from "fs";
-import split2 from "split2";
 import { parser } from "./parser";
 import { Entry } from "./types";
-import { readLinesSync } from "./lib";
+import { readLines, readLinesSync } from "./lib";
 
 interface CSVOptions<T extends string> {
   /**
@@ -35,7 +34,7 @@ class CSV<T extends string> {
   public constructor(opts: CSVOptions<T>) {
     this.path = opts.path;
     this.delimiter = opts.delimiter ?? ",";
-    this.headers = this.stripHeaders(opts.headers ?? []);
+    this.headers = opts.headers ? this.stripHeaders(opts.headers) : [];
     this.stored = [];
 
     this.init(opts.deletePrevious ?? false);
@@ -88,9 +87,9 @@ class CSV<T extends string> {
         readLinesSync(
           this.path,
           line => {
-            this.headers = line.split(this.delimiter) as T[];
+            this.headers = line.split(this.delimiter).map(h => h.trim()) as T[];
           },
-          1
+          { limit: 1 }
         );
       }
     }
@@ -115,31 +114,27 @@ class CSV<T extends string> {
    * @returns A promise that resolves to an array of entries.
    */
   public async read(): Promise<Entry<T>[]> {
-    let reader = fs.createReadStream(this.path, "utf-8");
+    let entries: Entry<T>[] = [];
 
-    return new Promise((res, rej) => {
-      let entries: Entry<T>[] = [];
-      let isHeaders = true;
+    return new Promise(async (res, rej) => {
+      await readLines(
+        this.getPath(),
+        (line, i) => {
+          if (i > 0) {
+            let row = parser.parseRow(line, {
+              delimiter: this.delimiter,
+              headers: this.getHeaders()
+            });
 
-      reader.pipe(split2()).on("data", (line: string) => {
-        // Skip the headers.
-        if (isHeaders) {
-          isHeaders = false;
-          return;
+            entries.push(row as Entry<T>);
+          }
+        },
+        {},
+        err => {
+          if (err) rej(err);
+          else res(entries);
         }
-
-        // Parse the row.
-        let row = parser.parseRow(line, {
-          delimiter: this.delimiter,
-          headers: this.getHeaders()
-        });
-
-        // Push the row to the entries array.
-        entries.push(row as Entry<T>);
-      });
-
-      reader.on("close", () => res(entries));
-      reader.on("error", err => rej(err));
+      );
     });
   }
 
@@ -323,52 +318,48 @@ class CSV<T extends string> {
    * Converts the CSV file to a JSON file.
    * @param output Path to the JSON file to write to.
    */
-  public toJson(output: string): Promise<void> {
+  public async toJson(output: string): Promise<void> {
+    let writer = fs.createWriteStream(output);
+    let lp = (await this.read()).length;
+
+    let h: string[] = [];
+
+    writer.write("[");
+
     return new Promise(async (res, rej) => {
-      let reader = fs.createReadStream(this.path, "utf-8");
-      let writer = fs.createWriteStream(output);
-      let lp = (await this.read()).length;
+      await readLines(
+        this.getPath(),
+        (line, i) => {
+          if (i === 0) {
+            h = line.split(this.delimiter);
+          } else {
+            let obj: { [key: string]: unknown } = {};
+            let data = line.split(this.delimiter);
 
-      let h: string[] = [];
-      let f = true;
+            let l = h.length;
 
-      writer.write("[");
+            for (let i = 0; i < l; i++) {
+              let v = data[i];
 
-      reader.pipe(split2()).on("data", (line: string) => {
-        let obj: { [key: string]: unknown } = {};
-        let data = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+              obj[h[i]] = parser.parseValue(v);
+            }
 
-        if (f) {
-          h = data;
-          f = false;
-        } else {
-          let l = h.length;
+            writer.write(JSON.stringify(obj));
 
-          for (let i = 0; i < l; i++) {
-            let v = data[i];
-
-            obj[h[i]] = parser.parseValue(v);
+            if (lp > 1) writer.write(",\n");
+            lp--;
           }
-
-          writer.write(JSON.stringify(obj));
-
-          if (lp > 1) writer.write(",\n");
-          lp--;
+        },
+        {},
+        err => {
+          if (err) rej(err);
+          writer.write("]");
+          writer.close();
+          res();
         }
-      });
-
-      reader.on("error", rej);
-      reader.on("close", () => {
-        writer.write("]");
-        writer.close();
-        res();
-      });
+      );
     });
   }
 }
-
-const csv = new CSV({
-  path: "test/sasa.csv"
-});
 
 export { CSV };

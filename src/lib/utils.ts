@@ -1,10 +1,25 @@
 import fs from "fs";
 import rl from "readline";
 
+interface readLinesOptions {
+  /**
+   * The number of lines to read.
+   */
+  limit?: number;
+}
+
+/**
+ * Reads a file line by line.
+ * @param path The path to the file.
+ * @param cb The callback function to be called for each line.
+ * @param opts.limit The number of lines to read.
+ * @returns A promise that resolves when the file has been read
+ */
 async function readLines(
   path: string,
   cb: (line: string, i: number) => void,
-  limit?: number
+  opts: readLinesOptions = {},
+  onFinish?: (err?: Error) => void
 ): Promise<void> {
   let reader = rl.createInterface({
     input: fs.createReadStream(path, "utf-8")
@@ -16,20 +31,35 @@ async function readLines(
     reader.on("line", line => {
       cb(line, i);
       i++;
-      if (limit && i >= limit) {
+      if (opts.limit && i >= opts.limit) {
         reader.close();
         res();
       }
     });
-    reader.on("close", res);
-    reader.on("error", rej);
+
+    reader.on("close", () => {
+      res();
+      onFinish?.();
+    });
+    
+    reader.on("error", err => {
+      rej(err);
+      onFinish?.(err);
+    });
   });
 }
 
+/**
+ * Reads a file line by line.
+ * @param path The path to the file.
+ * @param cb The callback function to be called for each line.
+ * @param opts.limit The number of lines to read.
+ * @returns A promise that resolves when the file has been read
+ */
 function readLinesSync(
   path: string,
   cb: (line: string, i: number) => void,
-  limit?: number
+  opts: readLinesOptions = {}
 ) {
   const readSize = 1;
   const newLineChar = "\n";
@@ -50,7 +80,7 @@ function readLinesSync(
       cb(line, i);
       line = "";
       i++;
-      if (limit && i >= limit) break;
+      if (opts.limit && i >= opts.limit) break;
     } else line += char;
   } while (read === readSize);
 }
