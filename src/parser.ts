@@ -1,4 +1,4 @@
-import { Value } from ".";
+import { Value } from "./types";
 
 interface ParseHeaderOptions {
   delimiter?: string;
@@ -35,7 +35,7 @@ interface ParseRowOptions {
 function parseRow<T extends string>(
   line: string,
   opts: { delimiter?: string; headers: T[] }
-): Record<T, Value>;
+): Record<string, Value>;
 
 function parseRow(line: string, opts?: { delimiter?: string }): Value[];
 
@@ -62,3 +62,25 @@ function parseRow(
     return row.map(parseValue);
   }
 }
+
+/**
+ * Function to get the values in a row for each header.
+ * @param headers The headers to get values for.
+ * @param entry The entry to get values from.
+ * @returns The value in the row of the entry for each header.
+ */
+function getRowValuesFromHeaders(
+  headers: string[],
+  entry: Record<string, Value>
+): Value[] {
+  return headers.map(h => entry[h] ?? null);
+}
+
+const parser = {
+  parseValue,
+  parseHeaders,
+  parseRow,
+  getRowValuesFromHeaders
+};
+
+export { parser };

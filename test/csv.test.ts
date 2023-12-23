@@ -30,7 +30,7 @@ describe("CSV", () => {
       age: Math.floor(Math.random() * 100)
     }));
 
-    await csv.write(entries);
+    await csv.write(...entries);
     expect(existsSync("test/write.csv")).toBe(true);
     expect(readFileSync("test/write.csv").toString().split("\n").length).toBe(
       11
@@ -53,7 +53,7 @@ describe("CSV", () => {
         phone: randomUUID()
       }));
 
-      await csv.write(entries);
+      await csv.write(...entries);
 
       expect(await csv.read()).toEqual(entries);
     },
@@ -72,7 +72,7 @@ describe("CSV", () => {
       age: Math.floor(Math.random() * 100)
     }));
 
-    await csv.write(entries);
+    await csv.write(...entries);
 
     let data = await csv.read();
     expect(data).toEqual(entries);
