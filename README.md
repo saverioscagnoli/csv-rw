@@ -46,6 +46,42 @@ You must pass am object to the CSV class constructor, these are the properties o
 | `deletePrevious` | If the path to the CSV file already exists, whether to delete it and create a new one. | `string`   | `false` |
 | `delimiter`      | The delimiter that separates the value / headers                                       | `string`   | `,`     |
 
+## Usage with types
+
+By default, the value of each header is of type `Value`, which is `string | number | boolean | null`.
+The default `Value` type can be overridden, by preixing the headers value in the constructor.
+
+`s:...` -> `sting` <br />
+`n:...` -> `number` <br />
+`b:...` -> `boolean`
+
+And you can make a header value optional by suffixing the value with `?`
+By default, if the value is optional and not passed while writing to the csv file, it will default to `null`
+
+### Example
+
+```ts
+import { CSV } from "csv-rw";
+
+const csv = new CSV({
+  path: "path/to/file.csv",
+  headers: ["s:name", "n:age", "b:isAlive?"]
+});
+
+/**
+ * Name - string
+ * Age - number
+ * isAlive - boolean | undefined
+ */
+
+csv.write({ name: "Jane", age: "Don't ask that to a lady!" });
+/**
+ *                         ↑
+ * The typescript compiler will complain, as we are trying to
+ * assign a string to a number
+ */
+```
+
 ### License
 
 MIT License (c) 2023 Saverio Scagnoli
