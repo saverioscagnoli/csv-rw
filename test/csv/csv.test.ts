@@ -1,26 +1,26 @@
 import { existsSync, read, readFileSync, unlinkSync, writeFileSync } from "fs";
-import { CSV } from "../dist";
+import { CSV } from "../../dist";
 import { afterAll, describe, expect, test } from "vitest";
 import { randomUUID } from "crypto";
 
 describe("CSV", () => {
   test("constructor", () => {
     const csv = new CSV({
-      path: "test/constructor.csv",
+      path: "test/csv/constructor.csv",
       headers: ["id", "name", "age"],
       deletePrevious: true
     });
 
-    expect(csv["path"]).toBe("test/constructor.csv");
+    expect(csv["path"]).toBe("test/csv/constructor.csv");
     expect(csv["headers"]).toEqual(["id", "name", "age"]);
     expect(csv["delimiter"]).toBe(",");
 
-    expect(existsSync("test/constructor.csv")).toBe(true);
+    expect(existsSync("test/csv/constructor.csv")).toBe(true);
   });
 
   test("write", async () => {
     const csv = new CSV({
-      path: "test/write.csv",
+      path: "test/csv/write.csv",
       headers: ["id", "name", "age"]
     });
 
@@ -31,38 +31,38 @@ describe("CSV", () => {
     }));
 
     await csv.write(entries);
-    expect(existsSync("test/write.csv")).toBe(true);
-    expect(readFileSync("test/write.csv").toString().split("\n").length).toBe(
-      11
-    );
+    expect(existsSync("test/csv/write.csv")).toBe(true);
+    expect(
+      readFileSync("test/csv/write.csv").toString().split("\n").length
+    ).toBe(11);
   });
+
+  let largeEntries = Array.from({ length: 1000000 }, () => ({
+    id: randomUUID(),
+    name: randomUUID(),
+    age: Math.floor(Math.random() * 100),
+    email: randomUUID(),
+    phone: randomUUID()
+  }));
 
   test(
     "write large files",
     async () => {
       const csv = new CSV({
-        path: "test/large-write.csv",
+        path: "test/csv/large-write.csv",
         headers: ["id", "name", "age", "email", "phone"]
       });
 
-      let entries = Array.from({ length: 1000000 }, () => ({
-        id: randomUUID(),
-        name: randomUUID(),
-        age: Math.floor(Math.random() * 100),
-        email: randomUUID(),
-        phone: randomUUID()
-      }));
+      await csv.write(largeEntries);
 
-      await csv.write(entries);
-
-      expect(await csv.read()).toEqual(entries);
+      expect(await csv.read()).toEqual(largeEntries);
     },
     { timeout: 0 }
   );
 
   test("read", async () => {
     const csv = new CSV({
-      path: "test/read.csv",
+      path: "test/csv/read.csv",
       headers: ["id", "name", "age"]
     });
 
@@ -78,9 +78,19 @@ describe("CSV", () => {
     expect(data).toEqual(entries);
   });
 
+  test("read large file", async () => {
+    const csv = new CSV({
+      path: "test/csv/large-write.csv",
+      headers: ["id", "name", "age", "email", "phone"]
+    });
+
+    let data = await csv.read();
+    expect(data).toEqual(largeEntries);
+  });
+
   test("read empty", async () => {
     const csv = new CSV({
-      path: "test/read-empty.csv",
+      path: "test/csv/read-empty.csv",
       headers: ["id", "name", "age"]
     });
 
@@ -90,7 +100,7 @@ describe("CSV", () => {
 
   test("clear", async () => {
     const csv = new CSV({
-      path: "test/clear.csv",
+      path: "test/csv/clear.csv",
       headers: ["id", "name", "age"]
     });
 
@@ -103,32 +113,13 @@ describe("CSV", () => {
     await csv.write(entries);
     await csv.clear();
 
-    expect(readFileSync("test/clear.csv").toString()).toBe("id,name,age");
-    expect(await csv.read()).toEqual([]);
-  });
-
-  test("clear sync", async () => {
-    const csv = new CSV({
-      path: "test/clear-sync.csv",
-      headers: ["id", "name", "age"]
-    });
-
-    let entries = Array.from({ length: 10000 }, () => ({
-      id: randomUUID(),
-      name: randomUUID(),
-      age: Math.floor(Math.random() * 100)
-    }));
-
-    await csv.write(entries);
-    csv.clearSync();
-
-    expect(readFileSync("test/clear-sync.csv").toString()).toBe("id,name,age");
+    expect(readFileSync("test/csv/clear.csv").toString()).toBe("id,name,age");
     expect(await csv.read()).toEqual([]);
   });
 
   test("find", async () => {
     const csv = new CSV({
-      path: "test/find.csv",
+      path: "test/csv/find.csv",
       headers: ["id", "name", "age"]
     });
 
@@ -149,7 +140,7 @@ describe("CSV", () => {
 
   test("find-all", async () => {
     const csv = new CSV({
-      path: "test/find-all.csv",
+      path: "test/csv/find-all.csv",
       headers: ["id", "name", "age"]
     });
 
@@ -168,9 +159,9 @@ describe("CSV", () => {
     csv.store(entry2);
     csv.store(entries.slice(4500));
 
-    await csv.bulkWrite();
+    await csv.flush();
 
-    let entriesFound = await csv.findAll(x => x.age === 200);
+    let entriesFound = await csv.filter(x => x.age === 200);
 
     expect(entriesFound).toBeDefined();
     expect(entriesFound).toEqual([entry1, entry2]);
@@ -178,7 +169,7 @@ describe("CSV", () => {
 
   test("sort", async () => {
     const csv = new CSV({
-      path: "test/sort.csv",
+      path: "test/csv/sort.csv",
       headers: ["id", "name", "age"]
     });
 
@@ -197,7 +188,7 @@ describe("CSV", () => {
 
   test("delete", async () => {
     const csv = new CSV({
-      path: "test/delete.csv",
+      path: "test/csv/delete.csv",
       headers: ["id", "name", "age"]
     });
 
@@ -217,7 +208,7 @@ describe("CSV", () => {
 
   test("delete all", async () => {
     const csv = new CSV({
-      path: "test/delete-all.csv",
+      path: "test/csv/delete-all.csv",
       headers: ["id", "name", "age"]
     });
 
@@ -236,11 +227,11 @@ describe("CSV", () => {
     csv.store(entry2);
     csv.store(entries.slice(3463));
 
-    await csv.bulkWrite();
+    await csv.flush();
 
     await csv.deleteAll(x => x.age === 200);
 
-    expect(await csv.findAll(x => x.age === 200)).toEqual([]);
+    expect(await csv.filter(x => x.age === 200)).toEqual([]);
   });
 
   test("create csv from json", async () => {
@@ -252,7 +243,7 @@ describe("CSV", () => {
 
     const csv = await CSV.fromJson(
       JSON.stringify(entries),
-      "test/from-json.csv"
+      "test/csv/from-json.csv"
     );
 
     expect(await csv.read()).toEqual(entries);
@@ -266,32 +257,31 @@ describe("CSV", () => {
     }));
 
     const csv = new CSV({
-      path: "test/to-json.csv",
+      path: "test/csv/to-json.csv",
       headers: ["id", "name", "age"]
     });
 
     await csv.write(entries);
 
-    await csv.toJson("test/to-json.json");
+    await csv.toJson("test/csv/to-json.json");
 
     expect(await csv.read()).toEqual(entries);
   });
 
   afterAll(() => {
-    writeFileSync("test/constructor.csv", "");
-    unlinkSync("test/write.csv");
-    unlinkSync("test/read.csv");
-    unlinkSync("test/large-write.csv");
-    unlinkSync("test/read-empty.csv");
-    unlinkSync("test/clear.csv");
-    unlinkSync("test/clear-sync.csv");
-    unlinkSync("test/find.csv");
-    unlinkSync("test/find-all.csv");
-    unlinkSync("test/sort.csv");
-    unlinkSync("test/delete.csv");
-    unlinkSync("test/delete-all.csv");
-    unlinkSync("test/from-json.csv");
-    unlinkSync("test/to-json.csv");
-    unlinkSync("test/to-json.json");
+    writeFileSync("test/csv/constructor.csv", "");
+    unlinkSync("test/csv/write.csv");
+    unlinkSync("test/csv/read.csv");
+    unlinkSync("test/csv/large-write.csv");
+    unlinkSync("test/csv/read-empty.csv");
+    unlinkSync("test/csv/clear.csv");
+    unlinkSync("test/csv/find.csv");
+    unlinkSync("test/csv/find-all.csv");
+    unlinkSync("test/csv/sort.csv");
+    unlinkSync("test/csv/delete.csv");
+    unlinkSync("test/csv/delete-all.csv");
+    unlinkSync("test/csv/from-json.csv");
+    unlinkSync("test/csv/to-json.csv");
+    unlinkSync("test/csv/to-json.json");
   });
 });
