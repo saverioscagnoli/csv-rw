@@ -21,14 +21,14 @@ import { CSV } from "csw-rw";
 const csv = new CSV({ path: "path/to/file.csv", headers: ["name", "age"] });
 
 // There's intellisense!
-csv.write({ name: "John", age: 21 });
+await csv.write({ name: "John", age: 21 });
 
-csv.write([
+await csv.write([
   { name: "Jane", age: 19 },
   { name: "Freddy", age: 45 }
 ]);
 
-console.log(csv.read());
+csv.read().then(console.log)
 
 /* -> [
     { name: "John", age: 21 },
