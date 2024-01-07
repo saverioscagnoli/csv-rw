@@ -1,6 +1,6 @@
 import { Value } from "./types";
 
-interface ParseHeaderOptions {
+interface ParseOptions {
   delimiter?: string;
 }
 
@@ -22,7 +22,7 @@ function parseValue(v: string): Value {
   return v;
 }
 
-function parseHeaders(line: string, opts: ParseHeaderOptions = {}): string[] {
+function parseHeaders(line: string, opts: ParseOptions = {}): string[] {
   const delimiter = opts.delimiter ?? ",";
   return line.split(delimiter).map(header => header.trim());
 }
@@ -47,19 +47,23 @@ function parseRow(
   const headers = opts.headers ?? [];
   const l = headers.length;
 
-  let row = line.split(delimiter).map(e => e.trim());
+  let parsed = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)!;
+  let row = {} as Record<string, Value>;
 
   if (l > 0) {
-    let obj = {} as Record<string, Value>;
-
     for (let i = 0; i < l; i++) {
-      let [v, h] = [row[i], headers[i]];
-      obj[h] = parseValue(v);
+      let [h, v] = [headers[i], parsed[i]];
+
+      if (v.startsWith('"') && v.endsWith('"')) {
+        v = v.substring(1, v.length - 1);
+      }
+
+      row[h] = parseValue(v);
     }
 
-    return obj;
+    return row;
   } else {
-    return row.map(parseValue);
+    return parsed.map(parseValue);
   }
 }
 
@@ -71,12 +75,19 @@ function parseRow(
  */
 function getRowValuesFromHeaders(
   headers: string[],
-  entry: Record<string, Value>
+  entry: Record<string, Value>,
+  opts: ParseOptions = {}
 ): Value[] {
-  return headers.map(h => entry[h] ?? null);
+  const delimiter = opts.delimiter ?? ",";
+
+  return headers.map(h =>
+    entry[h] !== null
+      ? entry[h]?.toString().includes(delimiter)
+        ? `"${entry[h]}"`
+        : entry[h]
+      : "null"
+  );
 }
-
-
 
 const parser = {
   parseValue,

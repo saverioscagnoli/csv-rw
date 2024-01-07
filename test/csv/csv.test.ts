@@ -3,6 +3,10 @@ import { CSV } from "../../dist";
 import { afterAll, describe, expect, test } from "vitest";
 import { randomUUID } from "crypto";
 
+const rng = (min: number, max: number) =>
+  Math.floor(Math.random() * (max - min + 1)) + min;
+const pick = <T>(arr: T[]) => arr[rng(0, arr.length - 1)];
+
 describe("CSV", () => {
   test("constructor", () => {
     const csv = new CSV({
@@ -60,6 +64,28 @@ describe("CSV", () => {
     { timeout: 0 }
   );
 
+  let entriesWithDelimiter = Array.from({ length: 10 }, () => ({
+    id: ["a", "1", "g", ",", "d", "$", "&"]
+      .map((_, __, arr) => pick(arr))
+      .join(""),
+    name: ["a", "1", "g", ",", "d", "$", "&"]
+      .map((_, __, arr) => pick(arr))
+      .join(""),
+    age: Math.floor(Math.random() * 100)
+  }));
+
+  test("write delimiter", async () => {
+    const csv = new CSV({
+      path: "test/csv/write-delimiter.csv",
+      headers: ["id", "name", "age"]
+    });
+
+    await csv.write(entriesWithDelimiter);
+    expect(
+      readFileSync("test/csv/write-delimiter.csv").toString().split("\n").length
+    ).toBe(11);
+  });
+
   test("read", async () => {
     const csv = new CSV({
       path: "test/csv/read.csv",
@@ -86,6 +112,16 @@ describe("CSV", () => {
 
     let data = await csv.read();
     expect(data).toEqual(largeEntries);
+  });
+
+  test("read delimiter", async () => {
+    const csv = new CSV({
+      path: "test/csv/write-delimiter.csv",
+      headers: ["id", "name", "age"]
+    });
+
+    let data = await csv.read();
+    expect(data).toEqual(entriesWithDelimiter);
   });
 
   test("read empty", async () => {
@@ -273,6 +309,7 @@ describe("CSV", () => {
     unlinkSync("test/csv/write.csv");
     unlinkSync("test/csv/read.csv");
     unlinkSync("test/csv/large-write.csv");
+    unlinkSync("test/csv/write-delimiter.csv");
     unlinkSync("test/csv/read-empty.csv");
     unlinkSync("test/csv/clear.csv");
     unlinkSync("test/csv/find.csv");
