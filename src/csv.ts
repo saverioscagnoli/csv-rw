@@ -154,7 +154,9 @@ class CSV<T extends string> {
       for (let i = 0; i < l; i++) {
         let entry = arr[i];
         let values = parser
-          .getRowValuesFromHeaders(this.getHeaders(), entry)
+          .getRowValuesFromHeaders(this.getHeaders(), entry, {
+            delimiter: this.delimiter
+          })
           .map(v => v ?? "null");
 
         writer.write("\n" + values.join(this.delimiter));
