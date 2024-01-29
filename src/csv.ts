@@ -48,19 +48,16 @@ class CSV<T extends string> {
   private stripHeaders(headers: T[]): T[] {
     if (!headers || headers.length === 0) return [];
 
-    let stripped = headers
-      .map(h => h.replace(/^(n|b|s):|\?$/g, ""))
-      .map(h => h.trim()) as T[];
+    let stripped = headers.map(h =>
+      h.replace(/^(n|b|s):|\?$/g, "").trim()
+    ) as T[];
 
-    let l = stripped.length;
-
-    for (let i = 0; i < l; i++) {
-      let h = stripped[i];
-      let match = h.match(/[^0-9a-z]/i);
+    for (let h of stripped) {
+      let match = h.match(/[^0-9a-z_\/-]/i);
 
       if (match) {
         throw new Error(
-          `Invalid header: "${h}". Header must be alphanumeric. Found invalid charater "${match[0]}".`
+          `Invalid header: "${h}". Header must be alphanumeric. Found invalid charater "${match[0]}" The only non-alphanumeric characters allowed are [-, _, /].`
         );
       }
     }
@@ -129,10 +126,11 @@ class CSV<T extends string> {
             entries.push(row as Entry<T>);
           }
         },
-        {},
-        err => {
-          if (err) rej(err);
-          else res(entries);
+        {
+          onFinish: err => {
+            if (err) rej(err);
+            else res(entries);
+          }
         }
       );
     });
@@ -352,12 +350,13 @@ class CSV<T extends string> {
             lp--;
           }
         },
-        {},
-        err => {
-          if (err) rej(err);
-          writer.write("]");
-          writer.close();
-          res();
+        {
+          onFinish: err => {
+            if (err) rej(err);
+            writer.write("]");
+            writer.close();
+            res();
+          }
         }
       );
     });

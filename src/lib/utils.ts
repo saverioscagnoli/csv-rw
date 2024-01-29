@@ -6,6 +6,8 @@ interface readLinesOptions {
    * The number of lines to read.
    */
   limit?: number;
+
+  onFinish?: (err?: Error) => void;
 }
 
 /**
@@ -19,7 +21,6 @@ async function readLines(
   path: string,
   cb: (line: string, i: number) => void,
   opts: readLinesOptions = {},
-  onFinish?: (err?: Error) => void
 ): Promise<void> {
   let reader = rl.createInterface({
     input: fs.createReadStream(path, "utf-8")
@@ -39,12 +40,12 @@ async function readLines(
 
     reader.on("close", () => {
       res();
-      onFinish?.();
+      opts.onFinish?.();
     });
     
     reader.on("error", err => {
       rej(err);
-      onFinish?.(err);
+      opts.onFinish?.(err);
     });
   });
 }
